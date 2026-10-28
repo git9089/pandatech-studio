@@ -5,6 +5,7 @@ import idle from "@/assets/p-idle.mp4.asset.json";
 import talkingWebm from "@/assets/p-talking.webm.asset.json";
 import idleWebm from "@/assets/p-idle.webm.asset.json";
 import { useDesktop } from "@/lib/pt/store";
+import { pVoiceLevel } from "@/lib/p/live-call-store";
 import { useSpeaking } from "@/lib/pt/voice";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,30 @@ export function PHologram({ className }: { className?: string | undefined }) {
     if (talkingNow && !reduceMotion) void v.play().catch(() => undefined);
     else v.pause();
   }, [talkingNow, reduceMotion]);
+
+  // Live call lip sync: the mouth loop shows and speeds up only while P's real voice is sounding.
+  useEffect(() => {
+    let raf = 0;
+    let lastLoud = 0;
+    const tick = (t: number) => {
+      const v = talkRef.current;
+      if (v && pVoiceLevel.live && !reduceMotion) {
+        const lvl = pVoiceLevel.value;
+        if (lvl > 0.05) lastLoud = t;
+        const on = t - lastLoud < 90;
+        v.style.opacity = on ? String(Math.min(1, 0.55 + lvl * 1.5)) : "0";
+        v.playbackRate = Math.min(2, 0.7 + lvl * 2);
+        if (on && v.paused) void v.play().catch(() => undefined);
+        if (!on && !v.paused) v.pause();
+      } else if (v && v.style.opacity) {
+        v.style.opacity = "";
+        v.playbackRate = 1;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [reduceMotion]);
 
   useEffect(() => {
     const v = idleRef.current;

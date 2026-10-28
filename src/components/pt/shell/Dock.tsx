@@ -25,6 +25,7 @@ export function Dock() {
               <button
                 type="button"
                 onClick={() => open(id)}
+                data-app-id={id}
                 aria-label={app.title}
                 aria-current={active ? "page" : undefined}
                 className="block origin-bottom transition-transform duration-150 ease-out group-hover:-translate-y-1.5 group-hover:scale-110"
