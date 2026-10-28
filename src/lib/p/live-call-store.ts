@@ -29,4 +29,17 @@ export function useLiveCall<T>(select: (s: LiveCallState) => T): T {
 }
 
 /** P's live voice loudness 0..1, updated every animation frame (read without re-rendering). */
-export const pVoiceLevel = { value: 0, live: false };
+export const pVoiceLevel = { value: 0, live: false, analyser: false, lastSpeechText: 0, loop: false, error: "" };
+
+let sharedCtx: AudioContext | null = null;
+/** Must first be called from a click so the browser lets the audio analyser run. */
+export function getLiveAudioContext(): AudioContext | null {
+  try {
+    sharedCtx ??= new AudioContext();
+    if (sharedCtx.state === "suspended") void sharedCtx.resume();
+    return sharedCtx;
+  } catch (e) {
+    pVoiceLevel.error = String(e);
+    return null;
+  }
+}
