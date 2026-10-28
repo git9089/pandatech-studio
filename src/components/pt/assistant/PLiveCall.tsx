@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Mic, MicOff, Phone, PhoneOff, Hand } from "lucide-react";
 import { useLiveVoice, type LiveEvent } from "@/hooks/use-live-voice";
-import { pVoiceLevel, setLiveCall, useLiveCall } from "@/lib/p/live-call-store";
+import { getLiveAudioContext, pVoiceLevel, setLiveCall, useLiveCall } from "@/lib/p/live-call-store";
 import { useOpenApp } from "@/lib/pt/apps";
 import { cn } from "@/lib/utils";
 
@@ -25,8 +25,8 @@ function useVoiceLevel(audioRef: React.RefObject<HTMLAudioElement | null>, live:
       if (s && s !== stream && s.getAudioTracks().length) {
         stream = s;
         try {
-          ctx ??= new AudioContext();
-          void ctx.resume();
+          ctx = getLiveAudioContext();
+          if (!ctx) throw new Error("no audio context");
           analyser = ctx.createAnalyser();
           analyser.fftSize = 1024;
           ctx.createMediaStreamSource(s).connect(analyser);
@@ -34,6 +34,8 @@ function useVoiceLevel(audioRef: React.RefObject<HTMLAudioElement | null>, live:
           analyser = null;
         }
       }
+      pVoiceLevel.analyser = !!analyser && ctx?.state === "running";
+      if (ctx && ctx.state === "suspended") void ctx.resume();
       if (analyser) {
         analyser.getFloatTimeDomainData(buf);
         let sum = 0;
@@ -49,7 +51,7 @@ function useVoiceLevel(audioRef: React.RefObject<HTMLAudioElement | null>, live:
       cancelAnimationFrame(raf);
       pVoiceLevel.live = false;
       pVoiceLevel.value = 0;
-      void ctx?.close();
+      pVoiceLevel.analyser = false;
     };
   }, [audioRef, live]);
 }
@@ -66,6 +68,7 @@ export function PLiveCall() {
       heardRef.current = (heardRef.current + e.delta).slice(-220);
       setLiveCall({ heard: heardRef.current });
     } else if (e.type === "session.output_transcript.delta" && e.delta) {
+      pVoiceLevel.lastSpeechText = performance.now();
       if (heardRef.current) heardRef.current = "";
       saidRef.current = (saidRef.current + e.delta).slice(-220);
       setLiveCall({ said: saidRef.current });
@@ -108,7 +111,7 @@ export function PLiveCall() {
             </button>
           )}
           {idle ? (
-            <button type="button" onClick={call.start} className="flex items-center gap-1.5 rounded-full bg-cyan px-3 py-1.5 text-xs font-semibold text-deep hover:opacity-90">
+            <button type="button" onClick={() => { getLiveAudioContext(); call.start(); }} className="flex items-center gap-1.5 rounded-full bg-cyan px-3 py-1.5 text-xs font-semibold text-deep hover:opacity-90">
               <Phone className="size-3.5" /> Start call
             </button>
           ) : (
@@ -123,6 +126,7 @@ export function PLiveCall() {
           </p>
         )}
         {!idle && !heard && !said && <p className="text-[11px] text-text-3">Just talk — you can cut in any time.</p>}
+        {import.meta.env.DEV && !idle && <LipDiag status={call.status} />}
         {call.error && <p role="alert" className="text-[11px] text-destructive">{call.error}</p>}
         {call.playbackBlocked && (
           <button type="button" onClick={call.resumePlayback} className="rounded-md border border-cyan/60 px-2 py-1 text-xs text-cyan">Play P's voice</button>
@@ -164,4 +168,17 @@ function PointingHand() {
       <Hand className="size-12 text-cyan drop-shadow-[0_0_18px_var(--pt-glow)]" strokeWidth={1.5} />
     </div>
   );
+}
+
+/** Development-only lip-sync diagnostics. */
+function LipDiag({ status }: { status: string }) {
+  const ref = useRef<HTMLPreElement>(null);
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (ref.current) ref.current.textContent =
+        `call ${status} | analyser ${pVoiceLevel.analyser ? "on" : "off"} | level ${pVoiceLevel.value.toFixed(2)} | lips loop ${pVoiceLevel.loop ? "on" : "off"}${pVoiceLevel.error ? " | " + pVoiceLevel.error : ""}`;
+    }, 200);
+    return () => window.clearInterval(id);
+  }, [status]);
+  return <pre ref={ref} className="whitespace-pre-wrap font-mono text-[10px] text-text-3" />;
 }

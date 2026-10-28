@@ -38,7 +38,10 @@ export function PHologram({ className }: { className?: string | undefined }) {
     const tick = (t: number) => {
       const v = talkRef.current;
       if (v && pVoiceLevel.live && !reduceMotion) {
-        const lvl = pVoiceLevel.value;
+        pVoiceLevel.loop = true;
+        // If the browser blocks the audio analyser, fall back to P's live speech captions.
+        const captionActive = !pVoiceLevel.analyser && performance.now() - pVoiceLevel.lastSpeechText < 450;
+        const lvl = captionActive ? 0.35 + 0.25 * Math.abs(Math.sin(t / 90)) : pVoiceLevel.value;
         if (lvl > 0.05) lastLoud = t;
         const on = t - lastLoud < 90;
         v.style.opacity = on ? String(Math.min(1, 0.55 + lvl * 1.5)) : "0";
