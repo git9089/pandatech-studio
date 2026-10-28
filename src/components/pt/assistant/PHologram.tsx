@@ -95,7 +95,7 @@ export function PHologram({ className }: { className?: string | undefined }) {
         playsInline
         preload="auto"
         aria-hidden
-        className={cn("absolute inset-0 h-full w-full object-cover transition-opacity duration-300", talkingNow && !reduceMotion ? "opacity-100" : "opacity-0")}
+        className={cn("absolute inset-0 h-full w-full object-cover transition-opacity duration-75", talkingNow && !reduceMotion ? "opacity-100" : "opacity-0")}
       >
         <source src={talkingWebm.url} type="video/webm" />
         <source src={talking.url} type="video/mp4" />
