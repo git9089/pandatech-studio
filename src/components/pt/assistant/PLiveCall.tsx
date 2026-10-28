@@ -51,7 +51,7 @@ function useVoiceLevel(audioRef: React.RefObject<HTMLAudioElement | null>, live:
         let sum = 0;
         for (let i = lo; i < hi; i++) sum += bins[i]!;
         const energy = sum / Math.max(1, hi - lo) / 255; // 0..1
-        const target = Math.max(0, Math.min(1, (energy - 0.08) * 2.4));
+        const target = Math.max(0, Math.min(1, (energy - 0.1) * 1.7));
         const prev = pVoiceLevel.value;
         pVoiceLevel.value = target > prev ? prev + (target - prev) * 0.6 : prev + (target - prev) * 0.3;
       }

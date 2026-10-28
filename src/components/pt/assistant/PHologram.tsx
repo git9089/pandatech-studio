@@ -48,7 +48,7 @@ export function PHologram({ className }: { className?: string | undefined }) {
         // Captions are a backup only when the analyser never came up.
         const useCaptions = !pVoiceLevel.analyser && t - liveSince > 1500 && performance.now() - pVoiceLevel.lastSpeechText < 400;
         const lvl = useCaptions ? 0.7 : pVoiceLevel.value;
-        const op = lvl < 0.06 ? 0 : Math.min(1, 0.35 + lvl);
+        const op = lvl < 0.08 ? 0 : Math.min(1, 0.2 + lvl * 0.9);
         const rounded = Math.round(op * 20) / 20;
         if (rounded !== shown) { v.style.opacity = String(rounded); shown = rounded; }
       } else if (v && shown !== -1) {
