@@ -14,11 +14,14 @@ function useVoiceLevel(audioRef: React.RefObject<HTMLAudioElement | null>, live:
       return;
     }
     pVoiceLevel.live = true;
+    pVoiceLevel.error = "";
     let ctx: AudioContext | null = null;
     let analyser: AnalyserNode | null = null;
     let stream: MediaStream | null = null;
+    let tap: MediaStream | null = null;
     let raf = 0;
-    const buf = new Float32Array(1024);
+    let bins: Uint8Array<ArrayBuffer> = new Uint8Array(0);
+    let lo = 0, hi = 0;
     const tick = () => {
       const el = audioRef.current;
       const s = el?.srcObject instanceof MediaStream ? el.srcObject : null;
@@ -27,31 +30,38 @@ function useVoiceLevel(audioRef: React.RefObject<HTMLAudioElement | null>, live:
         try {
           ctx = getLiveAudioContext();
           if (!ctx) throw new Error("no audio context");
+          // Analyse a cloned track so the playing voice is never touched.
+          tap?.getTracks().forEach((t) => t.stop());
+          tap = new MediaStream(s.getAudioTracks().map((t) => t.clone()));
           analyser = ctx.createAnalyser();
-          analyser.fftSize = 1024;
-          ctx.createMediaStreamSource(s).connect(analyser);
-        } catch {
+          analyser.fftSize = 512;
+          analyser.smoothingTimeConstant = 0.35;
+          ctx.createMediaStreamSource(tap).connect(analyser);
+          bins = new Uint8Array(analyser.frequencyBinCount);
+          const hz = ctx.sampleRate / analyser.fftSize;
+          lo = Math.floor(300 / hz); hi = Math.ceil(3400 / hz); // speech band
+        } catch (err) {
           analyser = null;
+          pVoiceLevel.error = String(err);
         }
       }
       pVoiceLevel.analyser = !!analyser && ctx?.state === "running";
-      if (ctx && ctx.state === "suspended") void ctx.resume();
       if (analyser) {
-        analyser.getFloatTimeDomainData(buf);
+        analyser.getByteFrequencyData(bins);
         let sum = 0;
-        for (let i = 0; i < buf.length; i++) sum += buf[i]! * buf[i]!;
-        const rms = Math.min(1, Math.sqrt(sum / buf.length) * 6);
-        // fast attack, quick release so the mouth closes as soon as she stops
-        pVoiceLevel.value = rms > pVoiceLevel.value ? rms : pVoiceLevel.value * 0.7 + rms * 0.3;
+        for (let i = lo; i < hi; i++) sum += bins[i]!;
+        const energy = sum / Math.max(1, hi - lo) / 255; // 0..1
+        const target = Math.max(0, Math.min(1, (energy - 0.08) * 2.4));
+        const prev = pVoiceLevel.value;
+        pVoiceLevel.value = target > prev ? prev + (target - prev) * 0.6 : prev + (target - prev) * 0.3;
       }
-      raf = requestAnimationFrame(tick);
-    };
     raf = requestAnimationFrame(tick);
     return () => {
       cancelAnimationFrame(raf);
       pVoiceLevel.live = false;
       pVoiceLevel.value = 0;
       pVoiceLevel.analyser = false;
+      tap?.getTracks().forEach((t) => t.stop());
     };
   }, [audioRef, live]);
 }
