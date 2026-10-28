@@ -30,3 +30,4 @@ export function useLiveCall<T>(select: (s: LiveCallState) => T): T {
 
 /** P's live voice loudness 0..1, updated every animation frame (read without re-rendering). */
 export const pVoiceLevel = { value: 0, live: false };
+if (typeof window !== "undefined") (window as unknown as { __pv: typeof pVoiceLevel }).__pv = pVoiceLevel;
