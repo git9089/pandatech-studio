@@ -1,9 +1,11 @@
 {
   "version": 1,
-  "asset_id": "7f4ba3e0-c908-4b78-94a9-df6c9b807522",
-  "project_id": "5d8239a7-c2e4-4c06-b093-2a6d4472151b",
-  "url": "/__l5e/assets-v1/7f4ba3e0-c908-4b78-94a9-df6c9b807522/p-idle.mp4",
+  "asset_id": "969cc537-f9dc-424a-a60d-ed196a29b61f",
+  "project_id": "6db782ef-b41c-41db-8176-82822fcc7f73",
+  "url": "/__l5e/assets-v1/969cc537-f9dc-424a-a60d-ed196a29b61f/p-idle.mp4",
+  "r2_key": "a/v1/6db782ef-b41c-41db-8176-82822fcc7f73/969cc537-f9dc-424a-a60d-ed196a29b61f/p-idle.mp4",
   "original_filename": "p-idle.mp4",
   "size": 4257133,
-  "created_at": "2026-10-27T09:04:03Z"
+  "content_type": "video/mp4",
+  "created_at": "2026-10-28T13:36:45Z"
 }
