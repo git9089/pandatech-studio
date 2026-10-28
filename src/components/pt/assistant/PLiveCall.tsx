@@ -100,7 +100,7 @@ export function PLiveCall() {
         <div className="flex items-center gap-2">
           <span className={cn("size-2 rounded-full", connected ? "bg-cyan glow animate-pulse" : "bg-text-3")} />
           <p className="hud-label flex-1 !text-cyan">
-            {connected ? "Live with P" : call.status === "connecting" || call.status === "starting" ? "Calling P…" : "Talk to P"}
+            {connected ? "Live with P" : call.status === "connecting" ? "Calling P…" : "Talk to P"}
           </p>
           {connected && (
             <button type="button" onClick={() => call.setMuted(!call.muted)} aria-label={call.muted ? "Unmute" : "Mute"} className="grid size-8 place-items-center rounded-full border border-line text-text-2 hover:text-text">
