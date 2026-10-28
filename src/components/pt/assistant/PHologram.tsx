@@ -27,30 +27,35 @@ export function PHologram({ className }: { className?: string | undefined }) {
   useEffect(() => {
     const v = talkRef.current;
     if (!v) return;
+    if (pVoiceLevel.live) return; // live call controls the loop itself
     if (talkingNow && !reduceMotion) void v.play().catch(() => undefined);
     else v.pause();
   }, [talkingNow, reduceMotion]);
 
-  // Live call lip sync: the mouth loop shows and speeds up only while P's real voice is sounding.
+  // Live call lip sync: the talking loop keeps playing smoothly and fades in
+  // only while P's real voice is sounding, so the mouth opens and closes with her speech.
   useEffect(() => {
     let raf = 0;
-    let lastLoud = 0;
+    let shown = -1;
+    let liveSince = 0;
     const tick = (t: number) => {
       const v = talkRef.current;
       if (v && pVoiceLevel.live && !reduceMotion) {
         pVoiceLevel.loop = true;
-        // If the browser blocks the audio analyser, fall back to P's live speech captions.
-        const captionActive = !pVoiceLevel.analyser && performance.now() - pVoiceLevel.lastSpeechText < 450;
-        const lvl = captionActive ? 0.35 + 0.25 * Math.abs(Math.sin(t / 90)) : pVoiceLevel.value;
-        if (lvl > 0.05) lastLoud = t;
-        const on = t - lastLoud < 90;
-        v.style.opacity = on ? String(Math.min(1, 0.55 + lvl * 1.5)) : "0";
-        v.playbackRate = Math.min(2, 0.7 + lvl * 2);
-        if (on && v.paused) void v.play().catch(() => undefined);
-        if (!on && !v.paused) v.pause();
-      } else if (v && v.style.opacity) {
+        liveSince ||= t;
+        if (v.paused) void v.play().catch(() => undefined);
+        if (v.playbackRate !== 1) v.playbackRate = 1;
+        // Captions are a backup only when the analyser never came up.
+        const useCaptions = !pVoiceLevel.analyser && t - liveSince > 1500 && performance.now() - pVoiceLevel.lastSpeechText < 400;
+        const lvl = useCaptions ? 0.7 : pVoiceLevel.value;
+        const op = lvl < 0.08 ? 0 : Math.min(1, 0.2 + lvl * 0.9);
+        const rounded = Math.round(op * 20) / 20;
+        if (rounded !== shown) { v.style.opacity = String(rounded); shown = rounded; }
+      } else if (v && shown !== -1) {
         v.style.opacity = "";
-        v.playbackRate = 1;
+        shown = -1;
+        liveSince = 0;
+        pVoiceLevel.loop = false;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -90,7 +95,7 @@ export function PHologram({ className }: { className?: string | undefined }) {
         playsInline
         preload="auto"
         aria-hidden
-        className={cn("absolute inset-0 h-full w-full object-cover transition-opacity duration-300", talkingNow && !reduceMotion ? "opacity-100" : "opacity-0")}
+        className={cn("absolute inset-0 h-full w-full object-cover transition-opacity duration-75", talkingNow && !reduceMotion ? "opacity-100" : "opacity-0")}
       >
         <source src={talkingWebm.url} type="video/webm" />
         <source src={talking.url} type="video/mp4" />
