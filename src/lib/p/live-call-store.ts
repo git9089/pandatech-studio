@@ -43,4 +43,3 @@ export function getLiveAudioContext(): AudioContext | null {
     return null;
   }
 }
-if (typeof window !== "undefined") (window as unknown as { __pv: typeof pVoiceLevel }).__pv = pVoiceLevel;
