@@ -1,0 +1,1 @@
+COMMENT ON TABLE public.location_requests IS 'Consent-based location sharing requests';
