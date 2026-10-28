@@ -21,3 +21,4 @@
 - `src/test/branding.test.ts` must stay green: only Pandatechs branding in code, docs and assets.
 - P's AI calls (chat `/api/p-chat`, voice `/api/p-speech`) run only in `src/lib/p/*.server.ts`; model proposals pass `sanitizeProposal` before reaching the UI. Why: keys stay on the server and the model can never trigger an unlisted action.
 - Location sharing is consent-only: positions are written solely by the token-checked server functions in `src/lib/location/share.functions.ts` after the phone owner taps Allow; owner data is read through RLS as the signed-in user. Why: no location is ever collected without the person's explicit consent.
+- P's live voice call runs through the relay in `src/lib/live-relay.server.ts` (served at `/api/live`) and is owned by `PLiveCall` in the `_shell` layout; its tools may only point/open apps and suggest fixes. Why: the call survives app switches and never changes the system silently.

@@ -5,6 +5,7 @@ import { Dock } from "@/components/pt/shell/Dock";
 import { Footer } from "@/components/pt/shell/Footer";
 import { Overlays } from "@/components/pt/shell/Overlays";
 import { Wallpaper } from "@/components/pt/shell/Wallpaper";
+import { PLiveCall } from "@/components/pt/assistant/PLiveCall";
 import { useNavigateEvents } from "@/lib/pt/apps";
 
 export const Route = createFileRoute("/_shell")({
@@ -25,6 +26,7 @@ function ShellLayout() {
       <Dock />
       <Footer />
       <Overlays />
+      <PLiveCall />
     </Stage>
   );
 }

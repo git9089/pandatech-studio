@@ -20,3 +20,8 @@
   - [ ] P coding assistant: context chips, edit proposals with diff, task plans, approval card, providers (sample + online)
   - [ ] Command Center, Settings, Notifications, Welcome + templates, first-run onboarding
   - [ ] Tests (diff, search, fuzzy, policy), screenshots at 1366/1600/1920, Studio integration guide, ZIP v5
+- [x] P live voice call (interrupt, jokes, laughs) on built-in AI
+- [x] Hologram lips follow P's real voice
+- [x] P points with a hand at apps and opens them
+- [x] P suggests bug fixes for approval (no self-editing)
+- [ ] WhatsApp chat (later; needs WhatsApp Business + Meta approval)
