@@ -55,6 +55,8 @@ function useVoiceLevel(audioRef: React.RefObject<HTMLAudioElement | null>, live:
         const prev = pVoiceLevel.value;
         pVoiceLevel.value = target > prev ? prev + (target - prev) * 0.6 : prev + (target - prev) * 0.3;
       }
+      raf = requestAnimationFrame(tick);
+    };
     raf = requestAnimationFrame(tick);
     return () => {
       cancelAnimationFrame(raf);
