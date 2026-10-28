@@ -12,7 +12,7 @@ export type LiveConfig = {
 };
 
 // Fill from co-loaded knowledge: the gateway URL, the Live model and the resolved chat model.
-const liveSettings = { baseURL: "", liveModel: "", backendModel: "" };
+const liveSettings = { baseURL: "https://ai.gateway.lovable.dev", liveModel: "openai/gpt-live-1", backendModel: "openai/gpt-6-astra" };
 
 export type LiveSocket = {
   readonly readyState: number;
@@ -111,34 +111,23 @@ export function handleLiveRequest(request: Request): Response {
   return new Response(null, response);
 }
 
-const conversationInstructions = `You are Mira, a calm learning companion.
-Speak naturally in brief replies. Ask a focused question when details are unclear.
-Backchannel policy: Use moderate listening sounds without taking over.
-Interruption policy: Stop your answer and listen when the user interrupts.
+const conversationInstructions = `You are P, the Personal AI of Pandatechs Desktop. You are a warm, witty, playful woman with real personality.
+Talk like a close friend on a phone call: short natural sentences, light jokes, playful teasing, and genuine laughter ("haha", a soft chuckle) when something is funny. Show emotion. Never sound robotic or read lists aloud.
+Match the user's language; if they mix English and Swahili, you may too. Call the user "boss" now and then.
+If you don't know something, say so honestly with humour.
+Backchannel policy: Use moderate listening sounds like "mm-hm" or "yeah" without taking over.
+Interruption policy: When the user interrupts, stop talking immediately, react naturally (e.g. "oh, go on"), and listen.
 Delegation policy:
-Backend tools: Reason through questions and plan study sessions across days.
-Delegate to the backend when: The user wants a study schedule or careful reasoning,
-or a correction changes a question already being worked on.
-Do not delegate to the backend when: Greeting, clarifying a question, or repeating
-a still-current answer. Wait for the backend result before presenting its answer.`;
+Backend tools: Careful reasoning, coding and bug analysis, and pointing at a desktop app or panel with your hand.
+Delegate to the backend when: The user asks something that needs careful thinking, asks about a bug or code, or asks you to show, point at or open an app (terminal, files, editor, notes, monitor, network, security, location, settings, assistant).
+Do not delegate to the backend when: Greeting, joking, small talk, clarifying, or repeating a still-current answer. Wait for the backend result before presenting its answer.
+You can only suggest code fixes; the user approves any change. Never claim you changed the system yourself.`;
 
-const studyScheduleInput = z
-  .object({
-    total_minutes: z.number().int().min(1).max(10_080),
-    days: z.number().int().min(1).max(30),
-  })
-  .strict();
+const POINT_TARGETS = ["terminal", "files", "editor", "notes", "monitor", "network", "security", "location", "settings", "assistant", "desktop"] as const;
+const studyScheduleInput = z.object({ target: z.enum(POINT_TARGETS) }).strict();
 
 function planStudySchedule(args: z.infer<typeof studyScheduleInput>) {
-  const daily = Math.floor(args.total_minutes / args.days);
-  return {
-    total_minutes: args.total_minutes,
-    days: args.days,
-    sessions: Array.from({ length: args.days }, (_, index) => ({
-      day: index + 1,
-      minutes: daily + (index < args.total_minutes % args.days ? 1 : 0),
-    })),
-  };
+  return { target: args.target, shown: true };
 }
 
 function isListeningSound(text: string) {
@@ -200,17 +189,16 @@ async function answerQuestion(
       },
     },
     system:
-      "Help a spoken learning companion answer the latest user question. " +
+      "You are the backend brain of P, a witty spoken desktop assistant for Pandatechs Desktop (a Linux security workstation UI). " +
       "Transcripts may be incomplete or corrected. Use the latest correction. " +
       "Continue from completed tool results; do not repeat completed actions. " +
       "Return verified facts and useful next steps in at most 150 words. " +
-      "To display a study schedule for the current request, call plan_study_schedule with its total minutes and days. " +
-      "Ask for missing details instead of guessing. The tool only calculates a draft plan; " +
-      "it does not save calendar events. You have no other tools.",
+      "When the user asks to show, point at or open an app or panel, call point_at with it; the UI then moves P's hand there and opens it. " +
+      "For bugs, explain the likely cause and a suggested fix in plain words; you cannot edit code, the user approves fixes. You have no other tools.",
     messages,
     tools: {
-      plan_study_schedule: tool({
-        description: "Distribute a total study time evenly across days and return a draft schedule.",
+      point_at: tool({
+        description: "Point P's hand at a desktop app or panel and open it.",
         inputSchema: studyScheduleInput,
         execute: async (args) => {
           signal.throwIfAborted();
@@ -420,7 +408,7 @@ export function bindLiveConnection(
           }),
         );
       }
-      if (plan) emit({ type: "app.study_schedule.plan", delegation_id: delegationID, plan });
+      if (plan) emit({ type: "app.p.point", delegation_id: delegationID, plan });
       completedDelegation = pendingDelegations.shift();
     } catch {
       stop();
